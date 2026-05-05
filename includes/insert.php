@@ -1,32 +1,36 @@
 <?php
+require_once __DIR__ . '/dbstudents.php';
 
-require_once __DIR__ . '/db.php';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = $_POST['name'] ?? '';
-    $surname = $_POST['surname'] ?? '';
-    $middlename = $_POST['middlename'] ?? '';
-    $address = $_POST['address'] ?? '';
-    $contact = $_POST['contact'] ?? '';
-
-    try {
-        $sql = "INSERT INTO students (name, surname, middlename, address, contact_number) 
-                VALUES (:name, :surname, :middlename, :address, :contact)";
-        
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':name'       => $name,
-            ':surname'    => $surname,
-            ':middlename' => $middlename,
-            ':address'    => $address,
-            ':contact'    => $contact
-        ]);
-
-        header("Location: ../public/index.php?status=success");
-        exit();
-        
-    } catch (PDOException $e) {
-        echo "Database Error: " . $e->getMessage();
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../index.php');
+    exit;
 }
-?>
+
+$surname        = trim($_POST['surname'] ?? '');
+$name           = trim($_POST['name'] ?? '');
+$middlename     = trim($_POST['middlename'] ?? '');
+$address        = trim($_POST['address'] ?? '');
+$contact_number = trim($_POST['contact_number'] ?? '');
+
+if ($surname === '' || $name === '') {
+    header('Location: ../index.php?status=error');
+    exit;
+}
+
+$stmt = $conn->prepare('INSERT INTO students (surname, name, middlename, address, contact_number) VALUES (?, ?, ?, ?, ?)');
+if (! $stmt) {
+    header('Location: ../index.php?status=error');
+    exit;
+}
+
+$stmt->bind_param('sssss', $surname, $name, $middlename, $address, $contact_number);
+$success = $stmt->execute();
+$stmt->close();
+$conn->close();
+
+if ($success) {
+    header('Location: ../index.php?status=success');
+} else {
+    header('Location: ../index.php?status=error');
+}
+exit;
